@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../navigation/app_nav.dart';
 import '../state/app_state.dart';
 import '../theme/theme.dart';
+import '../utils/insets.dart';
 import '../widgets/widgets.dart';
 
 class SettingsScreen extends StatelessWidget {
@@ -13,20 +14,21 @@ class SettingsScreen extends StatelessWidget {
     final s = context.watch<AppState>();
 
     Widget row(String icon, String label, VoidCallback onTap, {bool last = false}) {
-      return InkWell(
+      return Pressable(
+        scale: 0.99,
         onTap: onTap,
         child: Container(
-          height: 54,
-          padding: const EdgeInsets.fromLTRB(18, 0, 22, 0),
+          height: 64,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
           decoration: BoxDecoration(
             border: last ? null : const Border(bottom: BorderSide(color: AppColors.borderSoft)),
           ),
           child: Row(
             children: [
-              AppIcon(icon, size: 18, color: AppColors.inkDim),
-              const SizedBox(width: 22),
-              Expanded(child: Text(label, style: AppText.t(14, color: AppColors.inkDim))),
-              const AppIcon('right', size: 14, color: AppColors.muted),
+              IconTile(icon, size: 38),
+              const SizedBox(width: 14),
+              Expanded(child: Text(label, style: AppText.t(15, w: FontWeight.w500))),
+              const AppIcon('right', size: 22, color: AppColors.faint),
             ],
           ),
         ),
@@ -34,63 +36,52 @@ class SettingsScreen extends StatelessWidget {
     }
 
     return Scaffold(
-      body: Column(
+      body: GlassPage(
+        title: 'Settings',
+        showBack: true,
+        bottomPadding: Insets.bottom(context) + 32,
         children: [
-          const BackHeader('Settings'),
-          Expanded(
-            child: ListView(
-              padding: const EdgeInsets.only(top: 32),
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(30, 0, 30, 14),
-                  child: Text('Bible text size', style: AppText.t(13, color: AppColors.muted, lh: 18)),
-                ),
-                AppSegmented(
-                  labels: const ['Small', 'Medium', 'Large'],
-                  index: s.textSize,
-                  margin: const EdgeInsets.symmetric(horizontal: 22),
-                  onChanged: s.setTextSize,
-                ),
-                Container(
-                  margin: const EdgeInsets.fromLTRB(22, 32, 22, 0),
-                  decoration: BoxDecoration(
-                    color: AppColors.menu,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: AppColors.border),
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(13),
-                    child: Column(
-                      children: [
-                        row('settings', 'Reset demo data', () async {
-                          final ok = await confirmDialog(
-                            context,
-                            title: 'Reset demo data?',
-                            message: 'This restores the sample bookmarks, plan progress and history.',
-                            confirmLabel: 'Reset',
-                          );
-                          if (ok && context.mounted) {
-                            s.resetDemoData();
-                            showToast(context, 'Demo data restored');
-                          }
-                        }),
-                        row('user', 'Sign out', () async {
-                          final ok = await confirmDialog(
-                            context,
-                            title: 'Sign out?',
-                            message: 'You’ll return to the welcome screen.',
-                            confirmLabel: 'Sign out',
-                          );
-                          if (ok && context.mounted) {
-                            AppNav.popToRoot(context);
-                            s.signOut();
-                          }
-                        }, last: true),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
+          const SectionLabel('Bible text size', padding: EdgeInsets.fromLTRB(24, 8, 24, 12)),
+          FadeSlideIn(
+            child: AppSegmented(
+              labels: const ['Small', 'Medium', 'Large'],
+              index: s.textSize,
+              onChanged: s.setTextSize,
+            ),
+          ),
+          const SizedBox(height: 24),
+          FadeSlideIn(
+            index: 1,
+            child: AppCard(
+              padding: EdgeInsets.zero,
+              child: Column(
+                children: [
+                  row('refresh', 'Reset demo data', () async {
+                    final ok = await confirmDialog(
+                      context,
+                      title: 'Reset demo data?',
+                      message: 'This restores the sample bookmarks, plan progress and history, and clears completed devotionals.',
+                      confirmLabel: 'Reset',
+                    );
+                    if (ok && context.mounted) {
+                      s.resetDemoData();
+                      showToast(context, 'Demo data restored');
+                    }
+                  }),
+                  row('logout', 'Sign out', () async {
+                    final ok = await confirmDialog(
+                      context,
+                      title: 'Sign out?',
+                      message: 'You’ll return to the welcome screen.',
+                      confirmLabel: 'Sign out',
+                    );
+                    if (ok && context.mounted) {
+                      AppNav.popToRoot(context);
+                      s.signOut();
+                    }
+                  }, last: true),
+                ],
+              ),
             ),
           ),
         ],

@@ -12,48 +12,53 @@ class SplashScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final h = MediaQuery.sizeOf(context).height;
     return Scaffold(
       body: Stack(
         fit: StackFit.expand,
         children: [
           const AppPhoto('splash'),
-          LayoutBuilder(
-            builder: (context, box) {
-              final top = (box.maxHeight * 0.243).clamp(90.0, 210.0);
-              return Column(
-                children: [
-                  SizedBox(height: top),
-                  const AppIcon('leaf', size: 36, color: AppColors.splashLeaf, stroke: 1.5),
-                  const SizedBox(height: 33),
-                  Text(
+          Padding(
+            padding: EdgeInsets.fromLTRB(28, Insets.top(context), 28, Insets.bottom(context) + 28),
+            child: Column(
+              children: [
+                SizedBox(height: h * 0.16),
+                const FadeSlideIn(
+                  child: AppIcon('leaf', size: 40, color: AppColors.splashLeaf),
+                ),
+                const SizedBox(height: 24),
+                FadeSlideIn(
+                  index: 1,
+                  child: Text(
                     'Grow closer\nto God, one day\nat a time.',
                     textAlign: TextAlign.center,
-                    style: AppText.t(32, color: AppColors.splashInk, lh: 42),
+                    style: AppText.serif(34, w: FontWeight.w500, color: AppColors.splashInk, lh: 44),
                   ),
-                  const Spacer(),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 27),
-                    child: PrimaryButton(
-                      'Get Started',
-                      color: const Color(0xFF35563A),
-                      onTap: () => AppNav.push(context, const OnboardingScreen()),
-                    ),
+                ),
+                const Spacer(),
+                FadeSlideIn(
+                  index: 3,
+                  child: PrimaryButton(
+                    'Get Started',
+                    color: const Color(0xFF35563A),
+                    onTap: () => AppNav.push(context, const OnboardingScreen()),
                   ),
-                  const SizedBox(height: 14),
-                  GestureDetector(
-                    behavior: HitTestBehavior.opaque,
+                ),
+                const SizedBox(height: 8),
+                FadeSlideIn(
+                  index: 4,
+                  child: Pressable(
                     // Mock sign-in: there is no backend, so this simply enters the app.
                     onTap: () => context.read<AppState>().completeOnboarding(),
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 24),
+                      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 24),
                       child: Text('I already have an account',
-                          style: AppText.t(13, color: const Color(0xEBFFFFFF), lh: 18)),
+                          style: AppText.t(14, w: FontWeight.w500, color: const Color(0xEBFFFFFF))),
                     ),
                   ),
-                  SizedBox(height: 30 + Insets.bottom(context)),
-                ],
-              );
-            },
+                ),
+              ],
+            ),
           ),
         ],
       ),

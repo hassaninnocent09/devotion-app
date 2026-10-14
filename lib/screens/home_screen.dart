@@ -20,141 +20,147 @@ class HomeScreen extends StatelessWidget {
     final dev = s.todayDevotional;
     final plan = s.activePlan;
 
-    return ListView(
-      primary: false,
-      padding: EdgeInsets.only(
-        top: Insets.top(context),
-        bottom: AppTabBar.height(context) + 24,
-      ),
+    return GlassPage(
+      largeTitle: false,
+      bottomPadding: AppTabBar.height(context) + 28,
       children: [
-        Padding(
-          padding: const EdgeInsets.only(left: 24, right: 34),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: 20),
-                    Text('${greeting(now)},',
-                        style: AppText.t(13, color: AppColors.inkDim, lh: 18)),
-                    const SizedBox(height: 7),
-                    Text(s.name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppText.t(26, w: FontWeight.w500, lh: 30)),
-                    const SizedBox(height: 19),
-                    Text(fullDate(now), style: AppText.t(13, color: AppColors.muted, lh: 18)),
-                  ],
+        FadeSlideIn(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 4, 24, 0),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('${greeting(now)},', style: AppText.t(14, color: AppColors.inkDim)),
+                      const SizedBox(height: 2),
+                      Text(s.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppText.serif(32, w: FontWeight.w500, lh: 40)),
+                      const SizedBox(height: 4),
+                      Text(fullDate(now), style: AppText.t(13, color: AppColors.muted)),
+                    ],
+                  ),
                 ),
-              ),
-              Padding(
-                padding: const EdgeInsets.only(top: 18),
-                child: GestureDetector(
+                Pressable(
                   onTap: () => s.setTab(3),
-                  child: const AppAvatar(size: 40),
+                  child: Container(
+                    padding: const EdgeInsets.all(3),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: AppColors.border, width: 1.5),
+                    ),
+                    child: const AppAvatar(size: 48),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
-        const SizedBox(height: 30),
-        HeroCard(
-          height: 302,
-          eyebrow: "Today's Devotional",
-          title: dev.title,
-          minutes: dev.minutes,
-          completed: false,
-          onTap: () => AppNav.push(context, DevotionalReadingScreen(devotional: dev)),
-          onTarget: () => AppNav.push(context, const DevotionalsScreen()),
+        const SizedBox(height: 24),
+        FadeSlideIn(
+          index: 1,
+          child: HeroCard(
+            height: 360,
+            eyebrow: s.isDoneToday(dev) ? 'Today’s devotional' : 'Day ${dev.day} of ${s.series.totalDays}',
+            title: dev.title,
+            meta: '${dev.category} · ${dev.minutes} min read',
+            completed: s.isDoneToday(dev),
+            onTap: () => AppNav.push(context, DevotionalReadingScreen(devotional: dev)),
+            onLibrary: () => AppNav.push(context, const DevotionalsScreen()),
+          ),
         ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(44, 36, 44, 0),
-          child: Text('Reading Plan Progress', style: AppText.t(14, w: FontWeight.w700, lh: 19)),
+        FadeSlideIn(
+          index: 2,
+          child: SectionLabel(
+            'Your progress',
+            padding: const EdgeInsets.fromLTRB(24, 32, 24, 14),
+          ),
         ),
-        const SizedBox(height: 8),
-        _PlanCard(plan: plan),
+        FadeSlideIn(
+          index: 3,
+          child: _ProgressCard(
+            icon: 'library',
+            title: s.series.title,
+            subtitle: '${s.completedCount} of ${s.series.totalDays} days',
+            value: s.completedCount / s.series.totalDays,
+            onTap: () => AppNav.push(context, const DevotionalsScreen()),
+          ),
+        ),
+        const SizedBox(height: 12),
+        FadeSlideIn(
+          index: 4,
+          child: plan == null
+              ? _ProgressCard(
+                  icon: 'plans',
+                  title: 'Start a reading plan',
+                  subtitle: 'Pick a plan to track it here',
+                  value: null,
+                  onTap: () => s.setTab(2),
+                )
+              : _ProgressCard(
+                  icon: 'book',
+                  title: plan.title,
+                  subtitle: '${s.doneCount(plan)} of ${plan.totalDays} days',
+                  value: s.progress(plan),
+                  onTap: () => AppNav.push(context, PlanProgressScreen(plan: plan)),
+                ),
+        ),
       ],
     );
   }
 }
 
-class _PlanCard extends StatelessWidget {
-  const _PlanCard({required this.plan});
-  final ReadingPlan? plan;
+class _ProgressCard extends StatelessWidget {
+  const _ProgressCard({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.value,
+    required this.onTap,
+  });
+
+  final String icon;
+  final String title;
+  final String subtitle;
+  final double? value;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final s = context.read<AppState>();
-    final p = plan;
-    final Widget content;
-    VoidCallback? onTap;
-
-    if (p == null) {
-      content = Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    return AppCard(
+      onTap: onTap,
+      child: Row(
         children: [
-          Text('Start a reading plan', style: AppText.t(13, w: FontWeight.w600, lh: 18)),
-          const SizedBox(height: 13),
-          Text('Pick a plan to track your progress here.',
-              style: AppText.t(13, color: AppColors.muted, lh: 18)),
-        ],
-      );
-      onTap = () => s.setTab(2);
-    } else {
-      final done = s.doneCount(p);
-      final pct = (s.progress(p) * 100).round();
-      content = Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(p.title, style: AppText.t(13, w: FontWeight.w600, lh: 18)),
-          const SizedBox(height: 13),
-          Text('$done / ${p.totalDays} days',
-              style: AppText.t(13, color: AppColors.muted, lh: 18)),
-          const SizedBox(height: 14),
-          Row(
-            children: [
-              Expanded(
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(3),
-                  child: LinearProgressIndicator(
-                    value: s.progress(p),
-                    minHeight: 6,
-                    backgroundColor: AppColors.track,
-                    valueColor: const AlwaysStoppedAnimation(AppColors.green),
+          IconTile(icon, size: 48),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: AppText.t(15, w: FontWeight.w600), maxLines: 1, overflow: TextOverflow.ellipsis),
+                const SizedBox(height: 4),
+                Text(subtitle, style: AppText.t(13, color: AppColors.muted)),
+                if (value != null) ...[
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(child: AnimatedBar(value!)),
+                      const SizedBox(width: 12),
+                      Text('${(value! * 100).round()}%',
+                          style: AppText.t(13, w: FontWeight.w500, color: AppColors.muted)),
+                    ],
                   ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Text('$pct%', style: AppText.t(13, color: AppColors.muted)),
-            ],
-          ),
-        ],
-      );
-      onTap = () => AppNav.push(context, PlanProgressScreen(plan: p));
-    }
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 22),
-      child: Material(
-        color: AppColors.card,
-        borderRadius: BorderRadius.circular(14),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(14),
-          onTap: onTap,
-          child: Container(
-            constraints: const BoxConstraints(minHeight: 110),
-            padding: const EdgeInsets.fromLTRB(22, 18, 22, 18),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: AppColors.border),
+                ],
+              ],
             ),
-            child: content,
           ),
-        ),
+          if (value == null) const AppIcon('right', size: 22, color: AppColors.faint),
+        ],
       ),
     );
   }
 }
-

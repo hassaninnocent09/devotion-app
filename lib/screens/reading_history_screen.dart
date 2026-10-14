@@ -13,58 +13,58 @@ class ReadingHistoryScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final s = context.watch<AppState>();
     final items = s.history;
+
     return Scaffold(
-      body: Column(
+      body: GlassPage(
+        title: 'Reading history',
+        showBack: true,
+        bottomPadding: Insets.bottom(context) + 32,
         children: [
-          const BackHeader('Reading history'),
-          const SizedBox(height: 12),
-          Expanded(
-            child: items.isEmpty
-                ? Center(
-                    child: Text('Chapters you read will appear here.',
-                        style: AppText.t(13, color: AppColors.muted)),
-                  )
-                : ListView(
-                    padding: EdgeInsets.only(bottom: Insets.bottom(context) + 24),
-                    children: [
-                      for (final h in items)
-                        InkWell(
-                          onTap: () {
-                            final b = s.bookByName(h.book);
-                            if (b != null) AppNav.openReader(context, b, h.chapter);
-                          },
-                          child: Container(
-                            height: 78,
-                            margin: const EdgeInsets.symmetric(horizontal: 26),
-                            padding: const EdgeInsets.symmetric(horizontal: 12),
-                            decoration: const BoxDecoration(
-                              border: Border(bottom: BorderSide(color: AppColors.borderSoft)),
-                            ),
-                            child: Row(
-                              children: [
-                                const AppIcon('history', size: 22, color: AppColors.inkDim),
-                                const SizedBox(width: 14),
-                                Expanded(
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text('${h.book} ${h.chapter}',
-                                          style: AppText.t(13, w: FontWeight.w600, lh: 18)),
-                                      const SizedBox(height: 10),
-                                      Text(shortDate(h.at),
-                                          style: AppText.t(13, color: AppColors.muted, lh: 18)),
-                                    ],
-                                  ),
-                                ),
-                                const AppIcon('right', size: 14, color: AppColors.muted),
-                              ],
-                            ),
+          if (items.isEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(40, 56, 40, 0),
+              child: Column(
+                children: [
+                  const IconTile('history', size: 64),
+                  const SizedBox(height: 20),
+                  Text('Chapters you read will appear here.',
+                      textAlign: TextAlign.center, style: AppText.t(14, color: AppColors.muted, lh: 22)),
+                ],
+              ),
+            )
+          else
+            for (var i = 0; i < items.length; i++)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: FadeSlideIn(
+                  index: i,
+                  child: AppCard(
+                    onTap: () {
+                      final b = s.bookByName(items[i].book);
+                      if (b != null) AppNav.openReader(context, b, items[i].chapter);
+                    },
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    child: Row(
+                      children: [
+                        const IconTile('history', size: 44),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('${items[i].book} ${items[i].chapter}',
+                                  style: AppText.t(15, w: FontWeight.w600)),
+                              const SizedBox(height: 2),
+                              Text(shortDate(items[i].at), style: AppText.t(13, color: AppColors.muted)),
+                            ],
                           ),
                         ),
-                    ],
+                        const AppIcon('right', size: 22, color: AppColors.faint),
+                      ],
+                    ),
                   ),
-          ),
+                ),
+              ),
         ],
       ),
     );

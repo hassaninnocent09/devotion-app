@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../theme/theme.dart';
 import 'app_icon.dart';
+import 'motion.dart';
 
 enum DotState { done, part, off }
 
@@ -11,19 +12,18 @@ class DayDot extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final off = state == DotState.off;
-    return Container(
-      width: 26,
-      height: 26,
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 260),
+      curve: Curves.easeOutCubic,
+      width: 32,
+      height: 32,
       alignment: Alignment.center,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: off
-            ? Colors.transparent
-            : (state == DotState.part ? AppColors.dotPart : AppColors.green),
+        color: off ? Colors.transparent : (state == DotState.part ? AppColors.dotPart : AppColors.green),
         border: off ? Border.all(color: AppColors.dotOffBorder, width: 1.5) : null,
       ),
-      child: AppIcon('check',
-          size: 14, stroke: 2.4, color: off ? AppColors.dotOffCheck : Colors.white),
+      child: AppIcon('check', size: 17, color: off ? AppColors.dotOffCheck : Colors.white),
     );
   }
 }
@@ -47,20 +47,19 @@ class WeekDots extends StatelessWidget {
       children: [
         for (final it in items)
           Expanded(
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
+            child: Pressable(
               onTap: it.onTap,
+              scale: 0.9,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   DayDot(it.state),
-                  const SizedBox(height: 11),
+                  const SizedBox(height: 10),
                   Text(
                     it.label,
-                    style: AppText.t(13,
-                        w: it.bold ? FontWeight.w700 : FontWeight.w500,
-                        color: it.bold ? AppColors.ink : AppColors.muted,
-                        lh: 18),
+                    style: AppText.t(12,
+                        w: it.bold ? FontWeight.w600 : FontWeight.w500,
+                        color: it.bold ? AppColors.ink : AppColors.muted),
                   ),
                 ],
               ),

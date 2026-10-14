@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'app_colors.dart';
@@ -22,7 +21,7 @@ class AppTheme {
     const swipeBack = CupertinoPageTransitionsBuilder();
     return ThemeData(
       useMaterial3: true,
-      fontFamily: AppText.family,
+      fontFamily: AppText.sans,
       scaffoldBackgroundColor: AppColors.background,
       canvasColor: AppColors.background,
       colorScheme: ColorScheme.fromSeed(

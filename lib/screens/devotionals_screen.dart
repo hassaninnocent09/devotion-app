@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../models/models.dart';
 import '../navigation/app_nav.dart';
 import '../state/app_state.dart';
 import '../theme/theme.dart';
@@ -7,7 +8,7 @@ import '../utils/utils.dart';
 import '../widgets/widgets.dart';
 import 'devotional_reading_screen.dart';
 
-/// Screen 8 – Devotionals hub (Today / All).
+/// Devotionals hub (Today / All).
 class DevotionalsScreen extends StatefulWidget {
   const DevotionalsScreen({super.key});
 
@@ -24,8 +25,7 @@ class _DevotionalsScreenState extends State<DevotionalsScreen> {
     return [
       for (var i = 0; i < 7; i++)
         () {
-          final day = monday.add(Duration(days: i));
-          final done = s.dayHasCompletion(day);
+          final done = s.dayHasCompletion(monday.add(Duration(days: i)));
           return WeekItem(weekdayShort[i], done ? DotState.done : DotState.off, bold: done);
         }(),
     ];
@@ -35,76 +35,148 @@ class _DevotionalsScreenState extends State<DevotionalsScreen> {
   Widget build(BuildContext context) {
     final s = context.watch<AppState>();
     final today = s.todayDevotional;
+    final series = s.series;
 
     return Scaffold(
-      body: ListView(
-        padding: EdgeInsets.only(top: Insets.top(context), bottom: Insets.bottom(context) + 32),
+      body: GlassPage(
+        title: 'Devotionals',
+        showBack: true,
+        bottomPadding: Insets.bottom(context) + 32,
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(24, 28, 24, 0),
-            child: Text('Devotionals', style: AppText.t(24, w: FontWeight.w700, lh: 28)),
-          ),
-          const SizedBox(height: 30),
-          AppSegmented(
-            labels: const ['Today', 'All'],
-            index: _tab,
-            onChanged: (i) => setState(() => _tab = i),
-          ),
-          const SizedBox(height: 30),
-          if (_tab == 0) ...[
-            HeroCard(
-              height: 314,
-              eyebrow: 'DAILY DEVOTIONAL',
-              caps: true,
-              title: today.title,
-              minutes: today.minutes,
-              completed: s.isDoneToday(today),
-              onTap: () => AppNav.push(context, DevotionalReadingScreen(devotional: today)),
-              onTarget: () => setState(() => _tab = 1),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(44, 54, 44, 0),
-              child: Text('This Week', style: AppText.t(15, w: FontWeight.w700, lh: 20)),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(13, 24, 13, 0),
-              child: WeekDots(items: _week(s)),
-            ),
-          ] else
-            for (final d in s.devotionals)
-              InkWell(
-                onTap: () => AppNav.push(context, DevotionalReadingScreen(devotional: d)),
-                child: Container(
-                  height: 97,
-                  padding: const EdgeInsets.only(left: 28, right: 28),
-                  child: Row(
+          FadeSlideIn(
+            index: 1,
+            child: AppCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(series.title, style: AppText.serif(22, w: FontWeight.w500, lh: 28)),
+                  const SizedBox(height: 6),
+                  Text(series.description,
+                      style: AppText.t(13, color: AppColors.muted, lh: 20),
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis),
+                  const SizedBox(height: 16),
+                  Row(
                     children: [
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(10),
-                        child: const SizedBox(width: 68, height: 68, child: AppPhoto('hills')),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(d.title,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: AppText.t(14, w: FontWeight.w600, lh: 19)),
-                            const SizedBox(height: 8),
-                            Text('${d.reference} · ${d.minutes} min read',
-                                style: AppText.t(13, color: AppColors.muted, lh: 18)),
-                          ],
-                        ),
-                      ),
-                      if (s.isDoneEver(d))
-                        const AppIcon('check-circle', size: 22, color: AppColors.green),
+                      Expanded(child: AnimatedBar(s.completedCount / series.totalDays)),
+                      const SizedBox(width: 12),
+                      Text('${s.completedCount}/${series.totalDays}',
+                          style: AppText.t(13, w: FontWeight.w500, color: AppColors.muted)),
                     ],
                   ),
-                ),
+                ],
               ),
+            ),
+          ),
+          const SizedBox(height: 20),
+          FadeSlideIn(
+            index: 2,
+            child: AppSegmented(
+              labels: const ['Today', 'All days'],
+              index: _tab,
+              onChanged: (i) => setState(() => _tab = i),
+            ),
+          ),
+          const SizedBox(height: 20),
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 280),
+            child: _tab == 0
+                ? Column(
+                    key: const ValueKey('today'),
+                    children: [
+                      HeroCard(
+                        height: 360,
+                        eyebrow: 'Day ${today.day} of ${series.totalDays}',
+                        title: today.title,
+                        meta: '${today.category} · ${today.minutes} min read',
+                        completed: s.isDoneToday(today),
+                        onTap: () => AppNav.push(context, DevotionalReadingScreen(devotional: today)),
+                        onLibrary: () => setState(() => _tab = 1),
+                      ),
+                      SectionLabel(
+                        'This week',
+                        padding: const EdgeInsets.fromLTRB(24, 32, 24, 14),
+                        trailing: s.streak > 0
+                            ? Row(
+                                children: [
+                                  const AppIcon('fire', size: 18, color: Color(0xFFC9892B), filled: true),
+                                  const SizedBox(width: 4),
+                                  Text('${s.streak} day streak',
+                                      style: AppText.t(13, w: FontWeight.w500, color: AppColors.muted)),
+                                ],
+                              )
+                            : null,
+                      ),
+                      AppCard(
+                        padding: const EdgeInsets.fromLTRB(8, 20, 8, 16),
+                        child: WeekDots(items: _week(s)),
+                      ),
+                    ],
+                  )
+                : Column(
+                    key: const ValueKey('all'),
+                    children: [
+                      for (var i = 0; i < s.devotionals.length; i++)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: FadeSlideIn(
+                            index: i,
+                            child: _DayCard(devotional: s.devotionals[i], done: s.isDoneEver(s.devotionals[i])),
+                          ),
+                        ),
+                    ],
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DayCard extends StatelessWidget {
+  const _DayCard({required this.devotional, required this.done});
+  final Devotional devotional;
+  final bool done;
+
+  @override
+  Widget build(BuildContext context) {
+    final d = devotional;
+    return AppCard(
+      onTap: () => AppNav.push(context, DevotionalReadingScreen(devotional: d)),
+      padding: const EdgeInsets.all(16),
+      child: Row(
+        children: [
+          Container(
+            width: 52,
+            height: 52,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: done ? AppColors.green : const Color(0x1F355539),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: done
+                ? const AppIcon('check', size: 26, color: Colors.white)
+                : Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text('DAY', style: AppText.t(11, w: FontWeight.w600, color: AppColors.green2, ls: 0.6)),
+                      Text('${d.day}', style: AppText.t(17, w: FontWeight.w600, color: AppColors.green)),
+                    ],
+                  ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(d.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: AppText.t(15, w: FontWeight.w600, lh: 20)),
+                const SizedBox(height: 4),
+                Text('${d.category} · ${d.reference}',
+                    maxLines: 1, overflow: TextOverflow.ellipsis, style: AppText.t(13, color: AppColors.muted)),
+              ],
+            ),
+          ),
+          const AppIcon('right', size: 22, color: AppColors.faint),
         ],
       ),
     );

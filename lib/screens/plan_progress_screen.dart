@@ -8,7 +8,7 @@ import '../theme/theme.dart';
 import '../utils/utils.dart';
 import '../widgets/widgets.dart';
 
-/// Screen 13 – Plan progress.
+/// Plan progress.
 class PlanProgressScreen extends StatefulWidget {
   const PlanProgressScreen({super.key, required this.plan});
   final ReadingPlan plan;
@@ -41,135 +41,167 @@ class _PlanProgressScreenState extends State<PlanProgressScreen> {
     final done = s.doneDays(plan);
     final next = s.nextDay(plan);
     final completed = plan.days.where((d) => done.contains(d.day)).toList().reversed.toList();
+    final upcoming = plan.days.where((d) => !done.contains(d.day) && d.day != next?.day).toList();
+    final shown = _tab == 0 ? upcoming.take(6).toList() : completed;
     final pct = (s.progress(plan) * 100).round();
 
     return Scaffold(
-      body: ListView(
-        padding: EdgeInsets.only(bottom: Insets.bottom(context) + 32),
+      body: GlassPage(
+        title: plan.title,
+        largeTitle: false,
+        showBack: true,
+        bottomPadding: Insets.bottom(context) + 32,
         children: [
-          BackHeader(plan.title),
-          const SizedBox(height: 32),
-          Center(
-            child: SizedBox(
-              width: 72,
-              height: 72,
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  CustomPaint(size: const Size(72, 72), painter: _RingPainter(s.progress(plan))),
-                  Text('$pct%', style: AppText.t(14, w: FontWeight.w700)),
-                ],
-              ),
+          FadeSlideIn(
+            child: Column(
+              children: [
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: 112,
+                  height: 112,
+                  child: TweenAnimationBuilder<double>(
+                    tween: Tween(begin: 0, end: s.progress(plan)),
+                    duration: const Duration(milliseconds: 1000),
+                    curve: Curves.easeOutCubic,
+                    builder: (_, v, __) => Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        CustomPaint(size: const Size(112, 112), painter: _RingPainter(v)),
+                        Text('$pct%', style: AppText.t(22, w: FontWeight.w600)),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(plan.title, style: AppText.serif(22, w: FontWeight.w500)),
+                const SizedBox(height: 4),
+                Text('${done.length} of ${plan.totalDays} days',
+                    style: AppText.t(14, w: FontWeight.w500, color: AppColors.muted)),
+              ],
             ),
           ),
-          const SizedBox(height: 16),
-          Text('${done.length} / ${plan.totalDays} days',
-              textAlign: TextAlign.center,
-              style: AppText.t(13, w: FontWeight.w600, color: AppColors.inkDim, lh: 18)),
-          UnderlineTabs(
-            labels: const ['Current', 'Completed'],
-            index: _tab,
-            height: 46,
-            margin: const EdgeInsets.fromLTRB(26, 22, 26, 0),
-            onChanged: (i) => setState(() => _tab = i),
-          ),
-          if (_tab == 0) ...[
-            Padding(
-              padding: const EdgeInsets.fromLTRB(26, 28, 26, 0),
-              child: Container(
-                height: 64,
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                decoration: BoxDecoration(
-                  color: AppColors.card,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.border),
-                ),
-                child: next == null
-                    ? Row(children: [
-                        const AppIcon('check-circle', size: 22, color: AppColors.green),
-                        const SizedBox(width: 14),
-                        Text('Plan complete', style: AppText.t(13, w: FontWeight.w600)),
-                      ])
-                    : InkWell(
-                        borderRadius: BorderRadius.circular(12),
-                        onTap: () => _open(next),
-                        child: Row(
+          const SizedBox(height: 28),
+          if (next != null)
+            FadeSlideIn(
+              index: 1,
+              child: Pressable(
+                onTap: () => _open(next),
+                child: Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 20),
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [Color(0xFF3A5E40), Color(0xFF2B4630)],
+                    ),
+                    borderRadius: BorderRadius.circular(24),
+                    boxShadow: const [BoxShadow(color: Color(0x40355539), blurRadius: 24, offset: Offset(0, 12))],
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const AppIcon('route', size: 22, color: AppColors.inkDim),
-                            const SizedBox(width: 14),
-                            Expanded(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text('Day ${next.day}',
-                                      style: AppText.t(13, w: FontWeight.w600, lh: 18)),
-                                  const SizedBox(height: 10),
-                                  Text(next.reference,
-                                      style: AppText.t(13, color: AppColors.muted, lh: 18)),
-                                ],
-                              ),
-                            ),
-                            Container(
-                              height: 30,
-                              padding: const EdgeInsets.symmetric(horizontal: 14),
-                              alignment: Alignment.center,
-                              decoration: BoxDecoration(
-                                color: AppColors.pillBg,
-                                borderRadius: BorderRadius.circular(15),
-                                border: Border.all(color: AppColors.pillBorder),
-                              ),
-                              child: Text('Continue',
-                                  style: AppText.t(13, w: FontWeight.w700, color: AppColors.green)),
-                            ),
+                            Text('UP NEXT · DAY ${next.day}',
+                                style: AppText.t(11, w: FontWeight.w600, color: const Color(0xB3FFFFFF), ls: 1)),
+                            const SizedBox(height: 8),
+                            Text(next.reference, style: AppText.serif(24, w: FontWeight.w500, color: Colors.white)),
                           ],
                         ),
                       ),
+                      Container(
+                        width: 48,
+                        height: 48,
+                        alignment: Alignment.center,
+                        decoration: const BoxDecoration(color: Color(0xFFF9F5EC), shape: BoxShape.circle),
+                        child: const AppIcon('forward', size: 24, color: AppColors.green),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            )
+          else
+            FadeSlideIn(
+              index: 1,
+              child: AppCard(
+                child: Row(
+                  children: [
+                    const IconTile('check-circle', size: 44, filled: true),
+                    const SizedBox(width: 14),
+                    Text('Plan complete. Well done!', style: AppText.t(15, w: FontWeight.w600)),
+                  ],
+                ),
               ),
             ),
-          ],
-          const SizedBox(height: 12),
-          for (final d in completed) _DayRow(day: d, onTap: () => _open(d)),
+          const SizedBox(height: 24),
+          AppSegmented(
+            labels: const ['Upcoming', 'Completed'],
+            index: _tab,
+            onChanged: (i) => setState(() => _tab = i),
+          ),
+          const SizedBox(height: 16),
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 260),
+            child: Column(
+              key: ValueKey(_tab),
+              children: [
+                if (shown.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 32),
+                    child: Text(_tab == 0 ? 'Nothing else upcoming.' : 'No days completed yet.',
+                        style: AppText.t(14, color: AppColors.muted)),
+                  )
+                else
+                  AppCard(
+                    padding: EdgeInsets.zero,
+                    child: Column(
+                      children: [
+                        for (var i = 0; i < shown.length; i++)
+                          Pressable(
+                            scale: 0.99,
+                            onTap: () => _open(shown[i]),
+                            child: Container(
+                              height: 68,
+                              padding: const EdgeInsets.symmetric(horizontal: 18),
+                              decoration: BoxDecoration(
+                                border: i == shown.length - 1
+                                    ? null
+                                    : const Border(bottom: BorderSide(color: AppColors.borderSoft)),
+                              ),
+                              child: Row(
+                                children: [
+                                  AppIcon(done.contains(shown[i].day) ? 'check-circle' : 'clock',
+                                      size: 24,
+                                      filled: done.contains(shown[i].day),
+                                      color: done.contains(shown[i].day) ? AppColors.green : AppColors.muted),
+                                  const SizedBox(width: 14),
+                                  Expanded(
+                                    child: Column(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text('Day ${shown[i].day}', style: AppText.t(15, w: FontWeight.w600)),
+                                        const SizedBox(height: 2),
+                                        Text(shown[i].reference,
+                                            style: AppText.t(13, color: AppColors.muted)),
+                                      ],
+                                    ),
+                                  ),
+                                  const AppIcon('right', size: 22, color: AppColors.faint),
+                                ],
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+          ),
         ],
-      ),
-    );
-  }
-}
-
-class _DayRow extends StatelessWidget {
-  const _DayRow({required this.day, required this.onTap});
-  final PlanDay day;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      child: Container(
-        height: 78,
-        margin: const EdgeInsets.symmetric(horizontal: 26),
-        padding: const EdgeInsets.symmetric(horizontal: 12),
-        decoration: const BoxDecoration(
-          border: Border(bottom: BorderSide(color: AppColors.borderSoft)),
-        ),
-        child: Row(
-          children: [
-            const AppIcon('clock', size: 22, color: AppColors.inkDim),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Day ${day.day}', style: AppText.t(13, w: FontWeight.w600, lh: 18)),
-                  const SizedBox(height: 10),
-                  Text(day.reference, style: AppText.t(13, color: AppColors.muted, lh: 18)),
-                ],
-              ),
-            ),
-            const AppIcon('check-circle', size: 22, color: AppColors.muted),
-          ],
-        ),
       ),
     );
   }
@@ -181,19 +213,28 @@ class _RingPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final rect = Rect.fromCircle(center: size.center(Offset.zero), radius: 30);
-    final bg = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 6
-      ..color = AppColors.ringTrack;
-    canvas.drawCircle(rect.center, 30, bg);
+    final r = size.width / 2 - 7;
+    final rect = Rect.fromCircle(center: size.center(Offset.zero), radius: r);
+    canvas.drawCircle(
+      rect.center,
+      r,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 10
+        ..color = AppColors.ringTrack,
+    );
     if (value <= 0) return;
-    final fg = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 6
-      ..strokeCap = StrokeCap.round
-      ..color = AppColors.green;
-    canvas.drawArc(rect, -math.pi / 2, 2 * math.pi * value.clamp(0.0, 1.0), false, fg);
+    canvas.drawArc(
+      rect,
+      -math.pi / 2,
+      2 * math.pi * value.clamp(0.0, 1.0).toDouble(),
+      false,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 10
+        ..strokeCap = StrokeCap.round
+        ..color = AppColors.green,
+    );
   }
 
   @override

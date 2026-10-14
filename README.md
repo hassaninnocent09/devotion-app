@@ -1,47 +1,34 @@
 # Devotion
 
-A calm daily devotional + Bible reading app, built in Flutter from the 15-screen HTML mockup. Edge-to-edge, light theme, Plus Jakarta Sans, and the mockup's own SVG icons and illustrations.
+A calm daily devotional + Bible reading app in Flutter. Edge-to-edge, frosted headers, Material icons, Plus Jakarta Sans + Lora (weights 400/500/600 only).
 
-## Requirements
-- Flutter 3.24+ (Dart 3.4+)
-- Internet for chapter text (falls back to a tiny offline sample)
-
-## Run it
+## Run
 ```
 flutter create --project-name devotion_app --org com.example .
 flutter pub get
-flutter run -d chrome      # quickest preview
-flutter run                # device / emulator
+flutter run
 ```
-`flutter create .` only generates the platform folders (android/ios/web…); it leaves `lib/` alone.
-For release Android builds add `<uses-permission android:name="android.permission.INTERNET"/>` to `android/app/src/main/AndroidManifest.xml`.
+No permissions needed: the Bible and devotionals are bundled and work fully offline.
 
-## Font
-`assets/fonts/PlusJakartaSans.ttf` (variable, open-source) is bundled. To use your own file, overwrite it with the same name — or change the path in `pubspec.yaml` (registered for weights 200–800).
+## What's bundled
+- **Bible**: full King James Version (public domain), `assets/data/kjv.json`, all 66 books.
+- **Devotionals**: your "Walking With God" JSON, `assets/data/devotions.json` (10 days so far; add days 11-30 to the same file and the app picks them up).
+- **Fonts**: `assets/fonts/PlusJakartaSans.ttf`, `Lora.ttf` (overwrite either to use your own).
 
-## Flows (all wired)
-Splash → Onboarding (3 pages) → Home/Bible/Plans/You tabs.
-- **Home**: today's devotional → reading → mark complete → completed screen (add a reflection) → back home. Plan card → progress. Target icon on the hero → Devotionals hub (Today / All, weekly dots).
-- **Bible**: search books or refs ("John 3:16"), chapter picker, reader with verse options (bookmark, note, share/copy, highlight), toolbar (bookmark, highlight, copy reference, Aa text size, focus mode), chapter dropdown, copy chapter.
-- **Bookmarks** (You → Bookmarks): Verses and Passages; tap to jump back into the reader.
-- **Plans**: list (All / My Plans) → detail → Start Plan → progress ring. "Continue" opens the day's passage; a day completes automatically once you've read to its last verse.
-- **You**: edit name, reading history, bookmarks, completed devotionals, reminders (time picker + day toggles), settings (text size, reset demo data, sign out).
-- State persists locally (shared_preferences).
+## Design system
+- Real device insets everywhere (no hard-coded top padding); large titles collapse into a blurred translucent header; frosted tab bar, reader toolbar and sticky CTAs.
+- Motion: staggered fade/slide-in, press-scale on all taps, sliding segmented control, animated tab pill, progress bars/ring, elastic completion seal, tab cross-fade.
+- Icons: Material rounded; back button is the arrow.
 
-## Mocked vs real
-- Mocked: devotionals (`lib/data/mock/devotionals.dart`), plans (`plans.dart`), seeded bookmarks/history/plan progress/completions, sign-in ("I already have an account" just enters the app). Services in `lib/services/` are the seam for a real backend.
-- Real: chapter text from bible-api.com (World English Bible), local persistence, all navigation and state.
-- Reminders are stored but **do not fire notifications yet** (needs `flutter_local_notifications` + platform setup).
-- Share = copy to clipboard (no share sheet plugin, to keep the build dependency-light).
+## Flows
+Splash > onboarding > Home / Bible / Plans / You.
+- Home: today's devotional (next unfinished day), series + plan progress.
+- Devotional: scripture, devotion, reflect, pray, take action, mark complete, add reflection. "Read full passage" opens the verse in the Bible reader. Streak and week dots track completions.
+- Bible: search books or refs ("John 3:16"), chapter picker, reader with verse options, notes, highlights, bookmarks, text size, focus mode, previous/next chapter.
+- Plans: start, progress ring, passages open in the reader and complete when you reach the end.
+- You: stats, history, bookmarks, completed devotionals, reminders, settings. State persists locally.
 
-## Structure
-```
-assets/{fonts,images}   lib/{theme,models,data,services,state,navigation,widgets,screens,utils}
-```
-
-## Known gaps / assumptions (not in the mockup)
-- Onboarding pages 2–3 copy, chapter-picker sheet, note sheet, name/reflection sheets, Reading history, Completed devotionals and Settings screens were added so every control has a destination; they reuse the mockup's styles.
-- Devotional reading has a "Mark as complete" button at the end (the mockup shows none, but screen 10 needs a trigger).
-- Weekend reminder days render in the lighter green from the mockup's Saturday dot.
-- Bible text is WEB, not NIV, so wording differs slightly from the mockup. Swap `BibleService` for another source if you hold a licence.
-- Not compiled in the sandbox (no Flutter SDK available) — run `flutter analyze` first.
+## Not yet real
+- Reminders are saved but don't fire notifications (needs flutter_local_notifications + platform setup).
+- Sign-in is mocked. Share copies to clipboard.
+- Not compiled in the sandbox: run `flutter analyze` first.

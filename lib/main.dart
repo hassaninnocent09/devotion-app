@@ -17,7 +17,9 @@ Future<void> main() async {
     MultiProvider(
       providers: [
         ChangeNotifierProvider<AppState>.value(value: state),
-        Provider<BibleService>(create: (_) => BibleService()),
+        Provider<BibleService>(
+          create: (_) => BibleService()..ensureLoaded(),
+        ),
       ],
       child: const DevotionApp(),
     ),

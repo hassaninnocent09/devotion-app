@@ -13,59 +13,54 @@ class CompletedDevotionalsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final s = context.watch<AppState>();
-    final items = s.completedDevotionals;
+    final rows = <Widget>[];
+    for (final c in s.completedDevotionals) {
+      final d = s.devotionalById(c.devotionalId);
+      if (d == null) continue;
+      rows.add(AppCard(
+        onTap: () => AppNav.push(context, DevotionalReadingScreen(devotional: d)),
+        child: Row(
+          children: [
+            const IconTile('check-square', size: 44, filled: true),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(d.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: AppText.t(15, w: FontWeight.w600)),
+                  const SizedBox(height: 4),
+                  Text('Day ${d.day} · ${shortDate(DateTime.parse(c.dateKey))}',
+                      style: AppText.t(13, color: AppColors.muted)),
+                ],
+              ),
+            ),
+            const AppIcon('right', size: 22, color: AppColors.faint),
+          ],
+        ),
+      ));
+    }
+
     return Scaffold(
-      body: Column(
+      body: GlassPage(
+        title: 'Completed devotionals',
+        showBack: true,
+        bottomPadding: Insets.bottom(context) + 32,
         children: [
-          const BackHeader('Completed devotionals'),
-          const SizedBox(height: 12),
-          Expanded(
-            child: items.isEmpty
-                ? Center(
-                    child: Text('Nothing completed yet.',
-                        style: AppText.t(13, color: AppColors.muted)),
-                  )
-                : ListView(
-                    padding: EdgeInsets.only(bottom: Insets.bottom(context) + 24),
-                    children: [
-                      for (final c in items)
-                        if (s.devotionalById(c.devotionalId) case final d?)
-                          InkWell(
-                            onTap: () =>
-                                AppNav.push(context, DevotionalReadingScreen(devotional: d)),
-                            child: Container(
-                              height: 78,
-                              margin: const EdgeInsets.symmetric(horizontal: 26),
-                              padding: const EdgeInsets.symmetric(horizontal: 12),
-                              decoration: const BoxDecoration(
-                                border: Border(bottom: BorderSide(color: AppColors.borderSoft)),
-                              ),
-                              child: Row(
-                                children: [
-                                  const AppIcon('check-square', size: 22, color: AppColors.inkDim),
-                                  const SizedBox(width: 14),
-                                  Expanded(
-                                    child: Column(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(d.title,
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: AppText.t(13, w: FontWeight.w600, lh: 18)),
-                                        const SizedBox(height: 10),
-                                        Text(shortDate(DateTime.parse(c.dateKey)),
-                                            style: AppText.t(13, color: AppColors.muted, lh: 18)),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                    ],
-                  ),
-          ),
+          if (rows.isEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(40, 56, 40, 0),
+              child: Column(
+                children: [
+                  const IconTile('check-square', size: 64),
+                  const SizedBox(height: 20),
+                  Text('Nothing completed yet. Finish today’s devotional to see it here.',
+                      textAlign: TextAlign.center, style: AppText.t(14, color: AppColors.muted, lh: 22)),
+                ],
+              ),
+            )
+          else
+            for (var i = 0; i < rows.length; i++)
+              Padding(padding: const EdgeInsets.only(bottom: 12), child: FadeSlideIn(index: i, child: rows[i])),
         ],
       ),
     );

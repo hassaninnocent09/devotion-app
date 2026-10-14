@@ -4,7 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// Persists the whole app state as one JSON blob.
 class StorageService {
   StorageService._(this._prefs);
-  static const _key = 'devotion_state_v1';
+  static const _key = 'devotion_state_v2';
   final SharedPreferences _prefs;
 
   static Future<StorageService> open() async =>

@@ -3,7 +3,6 @@ import '../data/bible_books.dart';
 import '../models/models.dart';
 import '../navigation/app_nav.dart';
 import '../theme/theme.dart';
-import '../utils/insets.dart';
 import '../widgets/widgets.dart';
 
 class _Result {
@@ -23,11 +22,13 @@ class BibleBooksScreen extends StatefulWidget {
 
 class _BibleBooksScreenState extends State<BibleBooksScreen> {
   final _search = TextEditingController();
+  final _focus = FocusNode();
   int _testament = 0; // 0 old, 1 new
 
   @override
   void dispose() {
     _search.dispose();
+    _focus.dispose();
     super.dispose();
   }
 
@@ -46,8 +47,7 @@ class _BibleBooksScreenState extends State<BibleBooksScreen> {
       final out = <_Result>[];
       for (final b in BibleBooks.all) {
         if (b.name.toLowerCase().contains(namePart) && ch >= 1 && ch <= b.chapters) {
-          out.add(_Result(vs == null ? '${b.name} $ch' : '${b.name} $ch:$vs', b,
-              chapter: ch, verse: vs));
+          out.add(_Result(vs == null ? '${b.name} $ch' : '${b.name} $ch:$vs', b, chapter: ch, verse: vs));
         }
       }
       return out;
@@ -59,7 +59,7 @@ class _BibleBooksScreenState extends State<BibleBooksScreen> {
   }
 
   Future<void> _open(_Result r) async {
-    FocusScope.of(context).unfocus();
+    _focus.unfocus();
     var chapter = r.chapter;
     if (chapter == null) {
       if (r.book.chapters == 1) {
@@ -77,90 +77,109 @@ class _BibleBooksScreenState extends State<BibleBooksScreen> {
   Widget build(BuildContext context) {
     final results = _results();
     final searching = _search.text.trim().isNotEmpty;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+
+    return GlassPage(
+      title: 'Bible',
+      bottomPadding: AppTabBar.height(context) + 28,
       children: [
-        Padding(
-          padding: EdgeInsets.fromLTRB(24, Insets.top(context) + 28, 24, 0),
-          child: Text('Bible', style: AppText.t(24, w: FontWeight.w700, lh: 28)),
-        ),
-        Container(
-          height: 44,
-          margin: const EdgeInsets.fromLTRB(22, 26, 22, 0),
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          decoration: BoxDecoration(
-            color: AppColors.field,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Row(
-            children: [
-              const AppIcon('search', size: 15, color: AppColors.muted),
-              const SizedBox(width: 10),
-              Expanded(
-                child: TextField(
-                  controller: _search,
-                  onChanged: (_) => setState(() {}),
-                  textInputAction: TextInputAction.search,
-                  style: AppText.t(13, color: AppColors.ink),
-                  decoration: InputDecoration(
-                    isCollapsed: true,
-                    border: InputBorder.none,
-                    hintText: 'Search books, chapters or verses',
-                    hintStyle: AppText.t(13, color: AppColors.muted),
+        FadeSlideIn(
+          index: 1,
+          child: Container(
+            height: 52,
+            margin: const EdgeInsets.symmetric(horizontal: 20),
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            decoration: BoxDecoration(color: AppColors.field, borderRadius: BorderRadius.circular(18)),
+            child: Row(
+              children: [
+                const AppIcon('search', size: 22, color: AppColors.muted),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: TextField(
+                    controller: _search,
+                    focusNode: _focus,
+                    onChanged: (_) => setState(() {}),
+                    textInputAction: TextInputAction.search,
+                    style: AppText.t(14, color: AppColors.ink),
+                    decoration: InputDecoration(
+                      isCollapsed: true,
+                      border: InputBorder.none,
+                      hintText: 'Search books, chapters or verses',
+                      hintStyle: AppText.t(14, color: AppColors.muted),
+                    ),
                   ),
                 ),
-              ),
-              if (searching)
-                GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: () => setState(_search.clear),
-                  child: const Padding(
-                    padding: EdgeInsets.only(left: 8),
-                    child: Icon(Icons.close_rounded, size: 16, color: AppColors.muted),
+                if (searching)
+                  Pressable(
+                    onTap: () => setState(_search.clear),
+                    child: const Padding(
+                      padding: EdgeInsets.only(left: 8),
+                      child: AppIcon('close', size: 20, color: AppColors.muted),
+                    ),
                   ),
-                ),
-            ],
+              ],
+            ),
           ),
         ),
-        if (!searching)
-          UnderlineTabs(
-            labels: const ['Old Testament', 'New Testament'],
-            index: _testament,
-            margin: const EdgeInsets.fromLTRB(22, 22, 22, 0),
-            onChanged: (i) => setState(() => _testament = i),
+        if (!searching) ...[
+          const SizedBox(height: 16),
+          FadeSlideIn(
+            index: 2,
+            child: AppSegmented(
+              labels: const ['Old Testament', 'New Testament'],
+              index: _testament,
+              onChanged: (i) => setState(() => _testament = i),
+            ),
           ),
-        Expanded(
-          child: results.isEmpty
-              ? Center(
-                  child: Text('No results', style: AppText.t(13, color: AppColors.muted)),
-                )
-              : ListView.builder(
-                  primary: false,
-                  keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-                  padding: EdgeInsets.only(top: 17, bottom: AppTabBar.height(context) + 16),
-                  itemCount: results.length,
-                  itemBuilder: (_, i) {
-                    final r = results[i];
-                    return InkWell(
-                      onTap: () => _open(r),
-                      child: Container(
-                        height: 54,
-                        padding: const EdgeInsets.only(left: 30, right: 40),
-                        decoration: const BoxDecoration(
-                          border: Border(bottom: BorderSide(color: AppColors.borderSoft)),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(r.label, style: AppText.t(14, w: FontWeight.w500)),
-                            const AppIcon('right', size: 14, color: AppColors.muted),
-                          ],
+        ],
+        const SizedBox(height: 20),
+        if (results.isEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: 48),
+            child: Center(child: Text('No results', style: AppText.t(14, color: AppColors.muted))),
+          )
+        else
+          FadeSlideIn(
+            index: 3,
+            child: AppCard(
+              padding: EdgeInsets.zero,
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 240),
+                child: Column(
+                  key: ValueKey('$_testament$searching'),
+                  children: [
+                    for (var i = 0; i < results.length; i++)
+                      Pressable(
+                        scale: 0.99,
+                        onTap: () => _open(results[i]),
+                        child: Container(
+                          height: 58,
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          decoration: BoxDecoration(
+                            border: i == results.length - 1
+                                ? null
+                                : const Border(bottom: BorderSide(color: AppColors.borderSoft)),
+                          ),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Text(results[i].label, style: AppText.t(15, w: FontWeight.w500)),
+                              ),
+                              if (results[i].chapter == null)
+                                Padding(
+                                  padding: const EdgeInsets.only(right: 6),
+                                  child: Text('${results[i].book.chapters}',
+                                      style: AppText.t(13, color: AppColors.muted)),
+                                ),
+                              const AppIcon('right', size: 22, color: AppColors.faint),
+                            ],
+                          ),
                         ),
                       ),
-                    );
-                  },
+                  ],
                 ),
-        ),
+              ),
+            ),
+          ),
       ],
     );
   }

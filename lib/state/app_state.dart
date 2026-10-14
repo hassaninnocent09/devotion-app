@@ -7,19 +7,20 @@ import '../services/storage_service.dart';
 import '../utils/format.dart';
 
 class AppState extends ChangeNotifier {
-  AppState._(this._storage, this.devotionals, this.plans);
+  AppState._(this._storage, this.series, this.plans);
 
   static Future<AppState> create() async {
     final storage = await StorageService.open();
-    final devotionals = await DevotionalService().all();
+    final series = await DevotionalService().load();
     final plans = await PlanService().all();
-    final s = AppState._(storage, devotionals, plans);
+    final s = AppState._(storage, series, plans);
     s._restore(storage.read());
     return s;
   }
 
   final StorageService _storage;
-  final List<Devotional> devotionals;
+  final DevotionalSeries series;
+  List<Devotional> get devotionals => series.items;
   final List<ReadingPlan> plans;
 
   // ---- session / profile ----
@@ -76,7 +77,7 @@ class AppState extends ChangeNotifier {
     try {
       onboarded = j['onboarded'] as bool? ?? false;
       name = j['name'] as String? ?? 'Daniel';
-      textSize = (j['textSize'] as int? ?? 1).clamp(0, 2);
+      textSize = (j['textSize'] as int? ?? 1).clamp(0, 2).toInt();
       completions
         ..clear()
         ..addAll((j['completions'] as List).map((e) => Completion.fromJson(e as Map<String, dynamic>)));
@@ -124,12 +125,6 @@ class AppState extends ChangeNotifier {
     startedPlans.clear();
     planDays.clear();
     reminders = ReminderSettings.defaults();
-
-    final todayIdx = _todayIndex();
-    for (var i = 1; i <= 3; i++) {
-      final dev = devotionals[(todayIdx - i) % devotionals.length];
-      completions.add(Completion(dev.id, dateKey(now.subtract(Duration(days: i)))));
-    }
 
     void addVerse(String book, int ch, int v, String text, int daysAgo, {bool bookmark = true}) {
       final rec = SavedVerse(
@@ -198,16 +193,42 @@ class AppState extends ChangeNotifier {
   }
 
   void setTextSize(int i) {
-    textSize = i.clamp(0, 2);
+    textSize = i.clamp(0, 2).toInt();
     _save();
   }
 
   // ===================================================================
   // Devotionals
   // ===================================================================
-  int _todayIndex() => DateTime.now().difference(DateTime(2020)).inDays % devotionals.length;
+  /// Today's devotional: the one finished today (so the Completed state shows),
+  /// otherwise the next unfinished day in the series.
+  Devotional get todayDevotional {
+    final key = _today;
+    for (final c in completions) {
+      if (c.dateKey == key) {
+        final d = devotionalById(c.devotionalId);
+        if (d != null) return d;
+      }
+    }
+    for (final d in devotionals) {
+      if (!isDoneEver(d)) return d;
+    }
+    return devotionals.first;
+  }
 
-  Devotional get todayDevotional => devotionals[_todayIndex()];
+  int get completedCount => devotionals.where(isDoneEver).length;
+
+  /// Consecutive days (ending today or yesterday) with a completed devotional.
+  int get streak {
+    var day = DateTime.now();
+    if (!dayHasCompletion(day)) day = day.subtract(const Duration(days: 1));
+    var n = 0;
+    while (dayHasCompletion(day)) {
+      n++;
+      day = day.subtract(const Duration(days: 1));
+    }
+    return n;
+  }
 
   String get _today => dateKey(DateTime.now());
 
@@ -319,7 +340,7 @@ class AppState extends ChangeNotifier {
       _save();
       return false;
     }
-    passages.insert(0, SavedPassage(ref: d.reference, text: d.scripture, addedAt: DateTime.now()));
+    passages.insert(0, SavedPassage(ref: d.reference, text: d.keyVerse, addedAt: DateTime.now()));
     _save();
     return true;
   }

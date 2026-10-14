@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'dart:math' as math;
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -10,7 +10,7 @@ import '../theme/theme.dart';
 import '../utils/insets.dart';
 import '../widgets/widgets.dart';
 
-/// Screens 5 + 6 – Bible reading with verse options.
+/// Bible reading with verse options (offline KJV).
 class ReaderScreen extends StatefulWidget {
   const ReaderScreen({
     super.key,
@@ -34,7 +34,7 @@ class ReaderScreen extends StatefulWidget {
 }
 
 class _ReaderScreenState extends State<ReaderScreen> {
-  static const _sizes = [18.0, 20.0, 23.0];
+  static const _sizes = [18.0, 20.0, 22.5];
 
   late int _chapter = widget.chapter;
   int? _start;
@@ -52,6 +52,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
   Timer? _timer;
   DateTime? _loadedAt;
   bool _planDone = false;
+  double _t = 0;
 
   @override
   void initState() {
@@ -63,6 +64,10 @@ class _ReaderScreenState extends State<ReaderScreen> {
     if (widget.startVerse != null && widget.endVerse == null && widget.planId == null) {
       _selected = widget.startVerse;
     }
+    _scroll.addListener(() {
+      final t = (_scroll.hasClients ? _scroll.offset / 36 : 0.0).clamp(0.0, 1.0).toDouble();
+      if ((t - _t).abs() > 0.01) setState(() => _t = t);
+    });
     _load();
     _timer = Timer.periodic(const Duration(seconds: 2), (_) => _checkPlanEnd());
   }
@@ -100,12 +105,8 @@ class _ReaderScreenState extends State<ReaderScreen> {
     if (!mounted || s == null || s <= 1) return;
     final ctx = _keys[s]?.currentContext;
     if (ctx == null) return;
-    Scrollable.ensureVisible(
-      ctx,
-      alignment: 0.12,
-      duration: const Duration(milliseconds: 350),
-      curve: Curves.easeOutCubic,
-    );
+    Scrollable.ensureVisible(ctx,
+        alignment: 0.18, duration: const Duration(milliseconds: 420), curve: Curves.easeOutCubic);
   }
 
   /// A plan day completes once its last verse has been on screen for a moment.
@@ -121,17 +122,15 @@ class _ReaderScreenState extends State<ReaderScreen> {
     final box = ctx.findRenderObject();
     if (box is! RenderBox || !box.attached) return;
     final dy = box.localToGlobal(Offset.zero).dy;
-    final screenH = MediaQuery.sizeOf(context).height;
-    if (dy < screenH - 110) {
+    if (dy < MediaQuery.sizeOf(context).height - 140) {
       _planDone = true;
       final fresh = context.read<AppState>().completePlanDay(_planId!, _planDay!);
       if (fresh) showToast(context, 'Day $_planDay complete');
     }
   }
 
-  Future<void> _pickChapter() async {
-    final c = await showChapterPicker(context, widget.book, current: _chapter);
-    if (c == null || c == _chapter || !mounted) return;
+  void _goChapter(int c) {
+    if (c < 1 || c > widget.book.chapters || c == _chapter) return;
     setState(() {
       _chapter = c;
       _start = null;
@@ -145,6 +144,11 @@ class _ReaderScreenState extends State<ReaderScreen> {
     _load();
   }
 
+  Future<void> _pickChapter() async {
+    final c = await showChapterPicker(context, widget.book, current: _chapter);
+    if (c != null && mounted) _goChapter(c);
+  }
+
   Verse? get _selectedVerse {
     final n = _selected;
     final list = _verses;
@@ -156,6 +160,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
   }
 
   void _onVerse(Verse v) {
+    HapticFeedback.selectionClick();
     setState(() => _selected = v.number);
     showVerseOptions(context, book: widget.book, chapter: _chapter, verse: v);
   }
@@ -172,7 +177,8 @@ class _ReaderScreenState extends State<ReaderScreen> {
   void _shareChapter() {
     final list = _verses;
     if (list == null) return;
-    final text = '${widget.book.name} $_chapter\n\n${list.map((v) => '${v.number} ${v.text}').join('\n')}';
+    final text =
+        '${widget.book.name} $_chapter (KJV)\n\n${list.map((v) => '${v.number} ${v.text}').join('\n')}';
     Clipboard.setData(ClipboardData(text: text));
     showToast(context, 'Chapter copied, ready to share');
   }
@@ -180,62 +186,72 @@ class _ReaderScreenState extends State<ReaderScreen> {
   @override
   Widget build(BuildContext context) {
     final s = context.watch<AppState>();
-    final fontSize = _sizes[s.textSize];
-    final saved = _selected == null
-        ? null
-        : s.savedVerse(widget.book.name, _chapter, _selected!);
+    final top = Insets.top(context);
+    final saved = _selected == null ? null : s.savedVerse(widget.book.name, _chapter, _selected!);
 
     return Scaffold(
       body: Stack(
         children: [
-          Column(
-            children: [
-              Padding(
-                padding: EdgeInsets.fromLTRB(28, Insets.top(context) + 26, 28, 0),
-                child: SizedBox(
-                  height: 40,
+          Positioned.fill(child: _body(s)),
+          // Frosted header
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            height: top + 56,
+            child: Stack(
+              children: [
+                Positioned.fill(child: GlassBackdrop(opacity: _t, borderBottom: true)),
+                Positioned(
+                  left: 12,
+                  right: 12,
+                  bottom: 0,
+                  height: 56,
                   child: Row(
                     children: [
-                      GestureDetector(
-                        behavior: HitTestBehavior.opaque,
-                        onTap: () => Navigator.of(context).maybePop(),
-                        child: const Padding(
-                          padding: EdgeInsets.only(right: 14, top: 10, bottom: 10),
-                          child: AppIcon('left', size: 18),
+                      const AppBackButton(),
+                      Expanded(
+                        child: Center(
+                          child: Pressable(
+                            onTap: _pickChapter,
+                            child: Container(
+                              padding: const EdgeInsets.fromLTRB(16, 8, 10, 8),
+                              decoration: BoxDecoration(
+                                color: AppColors.field,
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text('${widget.book.name} $_chapter',
+                                      style: AppText.t(14, w: FontWeight.w600)),
+                                  const SizedBox(width: 2),
+                                  const AppIcon('down', size: 20),
+                                ],
+                              ),
+                            ),
+                          ),
                         ),
                       ),
-                      GestureDetector(
-                        behavior: HitTestBehavior.opaque,
-                        onTap: _pickChapter,
-                        child: Row(
-                          children: [
-                            Text('${widget.book.name} $_chapter',
-                                style: AppText.t(14, w: FontWeight.w700)),
-                            const SizedBox(width: 4),
-                            const AppIcon('down', size: 12),
-                          ],
-                        ),
-                      ),
-                      const Spacer(),
-                      GestureDetector(
-                        behavior: HitTestBehavior.opaque,
+                      Pressable(
                         onTap: _shareChapter,
-                        child: const Padding(
-                          padding: EdgeInsets.only(left: 14, top: 10, bottom: 10),
-                          child: AppIcon('share', size: 18),
+                        scale: 0.88,
+                        child: const SizedBox(
+                          width: 44,
+                          height: 44,
+                          child: Center(child: AppIcon('share', size: 22)),
                         ),
                       ),
                     ],
                   ),
                 ),
-              ),
-              Expanded(child: _body(fontSize)),
-            ],
+              ],
+            ),
           ),
           Positioned(
-            left: 22,
-            right: 22,
-            bottom: math.max(24.0, Insets.bottom(context) + 12),
+            left: 20,
+            right: 20,
+            bottom: Insets.bottom(context) + 16,
             child: _toolbar(s, saved),
           ),
         ],
@@ -243,7 +259,8 @@ class _ReaderScreenState extends State<ReaderScreen> {
     );
   }
 
-  Widget _body(double fontSize) {
+  Widget _body(AppState state) {
+    final top = Insets.top(context);
     if (_failed) {
       return Center(
         child: Padding(
@@ -252,16 +269,9 @@ class _ReaderScreenState extends State<ReaderScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text('Couldn’t load this chapter',
-                  textAlign: TextAlign.center, style: AppText.t(14, w: FontWeight.w600)),
-              const SizedBox(height: 8),
-              Text('Check your connection and try again.',
-                  textAlign: TextAlign.center,
-                  style: AppText.t(13, color: AppColors.muted, lh: 20)),
+                  textAlign: TextAlign.center, style: AppText.t(15, w: FontWeight.w600)),
               const SizedBox(height: 18),
-              SizedBox(
-                width: 160,
-                child: PrimaryButton('Try again', height: 44, onTap: _load),
-              ),
+              SizedBox(width: 160, child: PrimaryButton('Try again', height: 46, onTap: _load)),
             ],
           ),
         ),
@@ -271,99 +281,193 @@ class _ReaderScreenState extends State<ReaderScreen> {
     if (list == null) {
       return const Center(
         child: SizedBox(
-          width: 22,
-          height: 22,
-          child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.green),
+          width: 24,
+          height: 24,
+          child: CircularProgressIndicator(strokeWidth: 2.4, color: AppColors.green),
         ),
       );
     }
 
-    final state = context.watch<AppState>();
-    final lh = fontSize * 1.95;
+    final fontSize = _sizes[state.textSize];
+    final lh = fontSize * 1.8;
     return SingleChildScrollView(
       controller: _scroll,
-      padding: EdgeInsets.only(top: 55, bottom: 150 + Insets.bottom(context)),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          for (final v in list)
-            KeyedSubtree(
-              key: _keys[v.number],
-              child: _VerseRow(
-                verse: v,
-                fontSize: fontSize,
-                lineHeight: lh,
-                selected: _selected == v.number,
-                highlighted:
-                    state.savedVerse(widget.book.name, _chapter, v.number)?.highlighted == true,
-                dimmed: _focus && _selected != null && _selected != v.number,
-                onTap: () => _onVerse(v),
+      padding: EdgeInsets.only(top: top + 56 + 8, bottom: 120 + Insets.bottom(context)),
+      child: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 320),
+        child: Column(
+          key: ValueKey('${widget.book.name}$_chapter'),
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(28, 8, 28, 24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(widget.book.name, style: AppText.serif(34, w: FontWeight.w500, lh: 40)),
+                  const SizedBox(height: 4),
+                  Text('Chapter $_chapter  ·  KJV',
+                      style: AppText.t(13, w: FontWeight.w500, color: AppColors.muted)),
+                ],
               ),
             ),
-        ],
+            for (final v in list)
+              KeyedSubtree(
+                key: _keys[v.number],
+                child: _VerseRow(
+                  verse: v,
+                  fontSize: fontSize,
+                  lineHeight: lh,
+                  selected: _selected == v.number,
+                  highlighted:
+                      state.savedVerse(widget.book.name, _chapter, v.number)?.highlighted == true,
+                  dimmed: _focus && _selected != null && _selected != v.number,
+                  onTap: () => _onVerse(v),
+                ),
+              ),
+            const SizedBox(height: 16),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: _NavButton(
+                      label: 'Previous',
+                      icon: 'left',
+                      enabled: _chapter > 1,
+                      onTap: () => _goChapter(_chapter - 1),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _NavButton(
+                      label: 'Next',
+                      icon: 'forward',
+                      trailingIcon: true,
+                      enabled: _chapter < widget.book.chapters,
+                      onTap: () => _goChapter(_chapter + 1),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
   Widget _toolbar(AppState s, SavedVerse? saved) {
     Widget btn(Widget child, VoidCallback onTap) => Expanded(
-          child: InkResponse(
+          child: Pressable(
             onTap: onTap,
-            radius: 30,
-            child: SizedBox(height: 80, child: Center(child: child)),
+            scale: 0.88,
+            child: SizedBox(height: 64, child: Center(child: child)),
           ),
         );
 
     return Container(
-      height: 80,
       decoration: BoxDecoration(
-        color: AppColors.toolbar,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: const [
-          BoxShadow(color: Color(0x24504628), blurRadius: 20, offset: Offset(0, 6)),
-        ],
+        borderRadius: BorderRadius.circular(32),
+        boxShadow: const [BoxShadow(color: Color(0x2E504628), blurRadius: 28, offset: Offset(0, 10))],
       ),
-      child: Row(
-        children: [
-          btn(
-            AppIcon('bookmark',
-                size: 24,
-                filled: saved?.bookmarked == true,
-                color: saved?.bookmarked == true ? AppColors.green : AppColors.toolbarIcon),
-            () => _withVerse((v) {
-              final on = s.toggleBookmark(widget.book, _chapter, v);
-              showToast(context, on ? 'Bookmark added' : 'Bookmark removed');
-            }),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(32),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+          child: Container(
+            height: 64,
+            decoration: BoxDecoration(
+              color: const Color(0xD9FBF8F0),
+              border: Border.all(color: AppColors.border),
+              borderRadius: BorderRadius.circular(32),
+            ),
+            child: Row(
+              children: [
+                btn(
+                  AppIcon('bookmark',
+                      size: 24,
+                      filled: saved?.bookmarked == true,
+                      color: saved?.bookmarked == true ? AppColors.green : AppColors.toolbarIcon),
+                  () => _withVerse((v) {
+                    final on = s.toggleBookmark(widget.book, _chapter, v);
+                    showToast(context, on ? 'Bookmark added' : 'Bookmark removed');
+                  }),
+                ),
+                btn(
+                  AppIcon('underline',
+                      size: 24,
+                      color: saved?.highlighted == true ? AppColors.green : AppColors.toolbarIcon),
+                  () => _withVerse((v) {
+                    final on = s.toggleHighlight(widget.book, _chapter, v);
+                    showToast(context, on ? 'Verse highlighted' : 'Highlight removed');
+                  }),
+                ),
+                btn(
+                  const AppIcon('link', size: 24, color: AppColors.toolbarIcon),
+                  () => _withVerse((v) {
+                    Clipboard.setData(ClipboardData(text: '${widget.book.name} $_chapter:${v.number}'));
+                    showToast(context, 'Reference copied');
+                  }),
+                ),
+                btn(
+                  const AppIcon('text', size: 24, color: AppColors.toolbarIcon),
+                  () => s.setTextSize((s.textSize + 1) % 3),
+                ),
+                btn(
+                  AppIcon('focus',
+                      size: 24,
+                      filled: _focus,
+                      color: _focus ? AppColors.green : AppColors.toolbarIcon),
+                  () {
+                    setState(() => _focus = !_focus);
+                    showToast(context, _focus ? 'Focus mode on' : 'Focus mode off');
+                  },
+                ),
+              ],
+            ),
           ),
-          btn(
-            AppIcon('underline',
-                size: 24,
-                color: saved?.highlighted == true ? AppColors.green : AppColors.toolbarIcon),
-            () => _withVerse((v) {
-              final on = s.toggleHighlight(widget.book, _chapter, v);
-              showToast(context, on ? 'Verse highlighted' : 'Highlight removed');
-            }),
-          ),
-          btn(
-            const AppIcon('link', size: 24, color: AppColors.toolbarIcon),
-            () => _withVerse((v) {
-              Clipboard.setData(ClipboardData(text: '${widget.book.name} $_chapter:${v.number}'));
-              showToast(context, 'Reference copied');
-            }),
-          ),
-          btn(
-            Text('Aa', style: AppText.t(17, w: FontWeight.w600, color: AppColors.toolbarIcon)),
-            () => s.setTextSize((s.textSize + 1) % 3),
-          ),
-          btn(
-            AppIcon('target',
-                size: 24, color: _focus ? AppColors.green : AppColors.toolbarIcon),
-            () {
-              setState(() => _focus = !_focus);
-              showToast(context, _focus ? 'Focus mode on' : 'Focus mode off');
-            },
-          ),
-        ],
+        ),
+      ),
+    );
+  }
+}
+
+class _NavButton extends StatelessWidget {
+  const _NavButton({
+    required this.label,
+    required this.icon,
+    required this.enabled,
+    required this.onTap,
+    this.trailingIcon = false,
+  });
+
+  final String label;
+  final String icon;
+  final bool enabled;
+  final bool trailingIcon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = enabled ? AppColors.green : AppColors.faint;
+    final children = [
+      if (!trailingIcon) AppIcon(icon, size: 20, color: color),
+      if (!trailingIcon) const SizedBox(width: 8),
+      Text(label, style: AppText.t(14, w: FontWeight.w600, color: color)),
+      if (trailingIcon) const SizedBox(width: 8),
+      if (trailingIcon) AppIcon(icon, size: 20, color: color),
+    ];
+    return Pressable(
+      onTap: enabled ? onTap : null,
+      child: Container(
+        height: 52,
+        decoration: BoxDecoration(
+          color: AppColors.card,
+          borderRadius: BorderRadius.circular(26),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Row(mainAxisAlignment: MainAxisAlignment.center, children: children),
       ),
     );
   }
@@ -390,31 +494,31 @@ class _VerseRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bg = highlighted
-        ? AppColors.verseHighlight
-        : (selected ? AppColors.field : Colors.transparent);
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
+    final bg = highlighted ? AppColors.verseHighlight : (selected ? AppColors.field : Colors.transparent);
+    return Pressable(
       onTap: onTap,
+      scale: 0.995,
       child: AnimatedOpacity(
-        opacity: dimmed ? 0.35 : 1,
-        duration: const Duration(milliseconds: 200),
-        child: Container(
-          margin: const EdgeInsets.fromLTRB(8, 0, 8, 31),
-          padding: const EdgeInsets.fromLTRB(16, 6, 16, 6),
-          decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(12)),
+        opacity: dimmed ? 0.3 : 1,
+        duration: const Duration(milliseconds: 220),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 220),
+          curve: Curves.easeOut,
+          margin: const EdgeInsets.fromLTRB(12, 0, 12, 6),
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+          decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(16)),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.baseline,
             textBaseline: TextBaseline.alphabetic,
             children: [
               SizedBox(
-                width: 32,
+                width: 30,
                 child: Text('${verse.number}',
-                    style: AppText.t(13, color: AppColors.inkDim, lh: lineHeight)),
+                    style: AppText.t(12, w: FontWeight.w600, color: AppColors.green2)),
               ),
               Expanded(
                 child: Text(verse.text,
-                    style: AppText.t(fontSize, color: AppColors.verseInk, lh: lineHeight)),
+                    style: AppText.serif(fontSize, color: AppColors.verseInk, lh: lineHeight)),
               ),
             ],
           ),
@@ -423,4 +527,3 @@ class _VerseRow extends StatelessWidget {
     );
   }
 }
-

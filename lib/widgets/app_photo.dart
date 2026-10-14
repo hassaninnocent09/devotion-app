@@ -8,11 +8,7 @@ class AppPhoto extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SvgPicture.asset(
-      'assets/images/$name.svg',
-      fit: BoxFit.cover,
-      alignment: Alignment.center,
-    );
+    return SvgPicture.asset('assets/images/$name.svg', fit: BoxFit.cover, alignment: Alignment.center);
   }
 }
 
@@ -22,8 +18,6 @@ class AppAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ClipOval(
-      child: SizedBox(width: size, height: size, child: const AppPhoto('avatar')),
-    );
+    return ClipOval(child: SizedBox(width: size, height: size, child: const AppPhoto('avatar')));
   }
 }

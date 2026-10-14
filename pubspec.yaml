@@ -1,7 +1,7 @@
 name: devotion_app
 description: A calm daily devotional and Bible reading app.
 publish_to: "none"
-version: 1.0.0+1
+version: 1.1.0+2
 
 environment:
   sdk: ">=3.4.0 <4.0.0"
@@ -12,7 +12,6 @@ dependencies:
   provider: ^6.1.2
   flutter_svg: ^2.0.10+1
   shared_preferences: ^2.3.2
-  http: ^1.2.2
 
 dev_dependencies:
   flutter_test:
@@ -23,22 +22,23 @@ flutter:
 
   assets:
     - assets/images/
+    - assets/data/
 
-  # Variable font. Drop your own file in at the same path/name to replace it.
+  # Variable fonts. Overwrite either file (same name) to use your own.
   fonts:
     - family: PlusJakartaSans
       fonts:
-        - asset: assets/fonts/PlusJakartaSans.ttf
-          weight: 200
-        - asset: assets/fonts/PlusJakartaSans.ttf
-          weight: 300
         - asset: assets/fonts/PlusJakartaSans.ttf
           weight: 400
         - asset: assets/fonts/PlusJakartaSans.ttf
           weight: 500
         - asset: assets/fonts/PlusJakartaSans.ttf
           weight: 600
-        - asset: assets/fonts/PlusJakartaSans.ttf
-          weight: 700
-        - asset: assets/fonts/PlusJakartaSans.ttf
-          weight: 800
+    - family: Lora
+      fonts:
+        - asset: assets/fonts/Lora.ttf
+          weight: 400
+        - asset: assets/fonts/Lora.ttf
+          weight: 500
+        - asset: assets/fonts/Lora.ttf
+          weight: 600

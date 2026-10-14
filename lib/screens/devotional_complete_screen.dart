@@ -7,7 +7,7 @@ import '../theme/theme.dart';
 import '../utils/insets.dart';
 import '../widgets/widgets.dart';
 
-/// Screen 10 – Devotional completed.
+/// Devotional completed.
 class DevotionalCompleteScreen extends StatelessWidget {
   const DevotionalCompleteScreen({super.key, required this.devotional});
   final Devotional devotional;
@@ -35,80 +35,94 @@ class DevotionalCompleteScreen extends StatelessWidget {
         padding: EdgeInsets.only(top: Insets.top(context)),
         child: Column(
           children: [
-            Align(
-              alignment: Alignment.centerLeft,
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: () => Navigator.of(context).maybePop(),
-                child: const Padding(
-                  padding: EdgeInsets.fromLTRB(28, 30, 40, 10),
-                  child: AppIcon('left', size: 18),
-                ),
+            SizedBox(
+              height: 56,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: Row(children: const [AppBackButton()]),
               ),
             ),
             Expanded(
               child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
                 child: Column(
                   children: [
-                    const SizedBox(height: 20),
-                    Container(
-                      width: 68,
-                      height: 68,
-                      alignment: Alignment.center,
-                      decoration: const BoxDecoration(
-                        color: AppColors.seal,
-                        shape: BoxShape.circle,
+                    const SizedBox(height: 24),
+                    TweenAnimationBuilder<double>(
+                      tween: Tween(begin: 0, end: 1),
+                      duration: const Duration(milliseconds: 900),
+                      curve: Curves.elasticOut,
+                      builder: (_, v, child) => Transform.scale(scale: v.clamp(0.0, 1.2).toDouble(), child: child),
+                      child: Container(
+                        width: 88,
+                        height: 88,
+                        alignment: Alignment.center,
+                        decoration: const BoxDecoration(
+                          color: AppColors.seal,
+                          shape: BoxShape.circle,
+                          boxShadow: [BoxShadow(color: Color(0x4D355539), blurRadius: 30, offset: Offset(0, 12))],
+                        ),
+                        child: const AppIcon('check', size: 44, color: Colors.white),
                       ),
-                      child: const AppIcon('check', size: 30, stroke: 2, color: Colors.white),
                     ),
-                    const SizedBox(height: 18),
-                    Text('Today’s devotional\nis complete!',
-                        textAlign: TextAlign.center, style: AppText.t(26, lh: 48)),
-                    const SizedBox(height: 17),
-                    Text('You’ve taken an important step\nin your spiritual journey.',
+                    const SizedBox(height: 28),
+                    FadeSlideIn(
+                      index: 2,
+                      child: Text('Today’s devotional\nis complete!',
+                          textAlign: TextAlign.center,
+                          style: AppText.serif(30, w: FontWeight.w500, lh: 40)),
+                    ),
+                    const SizedBox(height: 12),
+                    FadeSlideIn(
+                      index: 3,
+                      child: Text(
+                        'Day ${devotional.day} done. You’ve taken an important step in your spiritual journey.',
                         textAlign: TextAlign.center,
-                        style: AppText.t(13, color: AppColors.muted, lh: 26)),
-                    const SizedBox(height: 56),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 30),
-                      child: Material(
-                        color: AppColors.card,
-                        borderRadius: BorderRadius.circular(12),
-                        child: InkWell(
-                          borderRadius: BorderRadius.circular(12),
-                          onTap: () => _reflect(context, s),
-                          child: Container(
-                            constraints: const BoxConstraints(minHeight: 88),
-                            padding: const EdgeInsets.fromLTRB(26, 19, 24, 19),
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: AppColors.border),
+                        style: AppText.t(14, color: AppColors.muted, lh: 23),
+                      ),
+                    ),
+                    if (s.streak > 1) ...[
+                      const SizedBox(height: 16),
+                      FadeSlideIn(
+                        index: 4,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const AppIcon('fire', size: 20, color: Color(0xFFC9892B), filled: true),
+                            const SizedBox(width: 6),
+                            Text('${s.streak} day streak',
+                                style: AppText.t(14, w: FontWeight.w600, color: AppColors.inkDim)),
+                          ],
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 32),
+                    FadeSlideIn(
+                      index: 5,
+                      child: AppCard(
+                        margin: EdgeInsets.zero,
+                        onTap: () => _reflect(context, s),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const IconTile('pencil', size: 40),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(has ? 'Reflection added' : 'Add a reflection',
+                                      style: AppText.t(15, w: FontWeight.w600)),
+                                  const SizedBox(height: 4),
+                                  Text(has ? reflection : 'Optional',
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: AppText.t(13, color: AppColors.muted, lh: 19)),
+                                ],
+                              ),
                             ),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Padding(
-                                  padding: EdgeInsets.only(top: 3),
-                                  child: AppIcon('pencil', size: 18, color: AppColors.inkDim),
-                                ),
-                                const SizedBox(width: 24),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(has ? 'Reflection added' : 'Add a reflection',
-                                          style: AppText.t(14, w: FontWeight.w600, lh: 18)),
-                                      const SizedBox(height: 11),
-                                      Text(has ? reflection : '(Optional)',
-                                          maxLines: 2,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: AppText.t(13, color: AppColors.muted, lh: 18)),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
+                            const AppIcon('right', size: 22, color: AppColors.faint),
+                          ],
                         ),
                       ),
                     ),
@@ -118,7 +132,7 @@ class DevotionalCompleteScreen extends StatelessWidget {
               ),
             ),
             Padding(
-              padding: EdgeInsets.fromLTRB(24, 0, 24, 32 + Insets.bottom(context)),
+              padding: EdgeInsets.fromLTRB(24, 8, 24, 20 + Insets.bottom(context)),
               child: PrimaryButton('Back to home', onTap: () {
                 s.setTab(0);
                 AppNav.popToRoot(context);

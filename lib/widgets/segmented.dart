@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import '../theme/theme.dart';
 
-/// Pill segmented control (`.seg`).
+/// Pill segmented control with a sliding thumb.
 class AppSegmented extends StatelessWidget {
   const AppSegmented({
     super.key,
     required this.labels,
     required this.index,
     required this.onChanged,
-    this.margin = const EdgeInsets.symmetric(horizontal: 24),
+    this.margin = const EdgeInsets.symmetric(horizontal: 20),
   });
 
   final List<String> labels;
@@ -19,95 +19,55 @@ class AppSegmented extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 36,
+      height: 42,
       margin: margin,
-      decoration: BoxDecoration(color: AppColors.segment, borderRadius: BorderRadius.circular(18)),
-      child: Row(
-        children: [
-          for (var i = 0; i < labels.length; i++)
-            Expanded(
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: () => onChanged(i),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 180),
-                  curve: Curves.easeOut,
-                  alignment: Alignment.center,
+      padding: const EdgeInsets.all(3),
+      decoration: BoxDecoration(color: AppColors.segment, borderRadius: BorderRadius.circular(21)),
+      child: LayoutBuilder(
+        builder: (context, box) {
+          final w = box.maxWidth / labels.length;
+          return Stack(
+            children: [
+              AnimatedPositioned(
+                duration: const Duration(milliseconds: 280),
+                curve: Curves.easeOutCubic,
+                left: w * index,
+                top: 0,
+                bottom: 0,
+                width: w,
+                child: DecoratedBox(
                   decoration: BoxDecoration(
-                    color: i == index ? AppColors.green : Colors.transparent,
+                    color: AppColors.green,
                     borderRadius: BorderRadius.circular(18),
-                  ),
-                  child: Text(
-                    labels[i],
-                    style: AppText.t(13,
-                        w: FontWeight.w600, color: i == index ? Colors.white : AppColors.muted),
+                    boxShadow: const [
+                      BoxShadow(color: Color(0x2B355539), blurRadius: 10, offset: Offset(0, 3)),
+                    ],
                   ),
                 ),
               ),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Underlined tabs (`.testament`, `.tabs`).
-class UnderlineTabs extends StatelessWidget {
-  const UnderlineTabs({
-    super.key,
-    required this.labels,
-    required this.index,
-    required this.onChanged,
-    required this.margin,
-    this.height = 48,
-  });
-
-  final List<String> labels;
-  final int index;
-  final ValueChanged<int> onChanged;
-  final EdgeInsets margin;
-  final double height;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: height,
-      margin: margin,
-      decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: AppColors.border)),
-      ),
-      child: Row(
-        children: [
-          for (var i = 0; i < labels.length; i++)
-            Expanded(
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: () => onChanged(i),
-                child: Stack(
-                  clipBehavior: Clip.none,
-                  fit: StackFit.expand,
-                  children: [
-                    Center(
-                      child: Text(
-                        labels[i],
-                        style: AppText.t(13,
-                            w: i == index ? FontWeight.w700 : FontWeight.w500,
-                            color: i == index ? AppColors.ink : AppColors.muted),
+              Row(
+                children: [
+                  for (var i = 0; i < labels.length; i++)
+                    Expanded(
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () => onChanged(i),
+                        child: Center(
+                          child: AnimatedDefaultTextStyle(
+                            duration: const Duration(milliseconds: 200),
+                            style: AppText.t(13,
+                                w: FontWeight.w600,
+                                color: i == index ? Colors.white : AppColors.muted),
+                            child: Text(labels[i]),
+                          ),
+                        ),
                       ),
                     ),
-                    if (i == index)
-                      const Positioned(
-                        left: 0,
-                        right: 0,
-                        bottom: -1,
-                        height: 2,
-                        child: ColoredBox(color: AppColors.green),
-                      ),
-                  ],
-                ),
+                ],
               ),
-            ),
-        ],
+            ],
+          );
+        },
       ),
     );
   }
