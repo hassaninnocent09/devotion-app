@@ -15,6 +15,40 @@ class Devotional {
     required this.minutes,
   });
 
+  factory Devotional.legacy({
+    required String id,
+    int day = 1,
+    required String title,
+    String subtitle = '',
+    required String reference,
+    String translation = 'KJV',
+    String? keyVerse,
+    required String scripture,
+    required List<String> paragraphs,
+    List<String> questions = const [],
+    String prayer = '',
+    String action = '',
+    String category = '',
+    int minutes = 4,
+  }) {
+    final body = paragraphs.isEmpty ? scripture : [...paragraphs, scripture].join(' ');
+    return Devotional(
+      id: id,
+      day: day,
+      title: title,
+      subtitle: subtitle,
+      reference: reference,
+      translation: translation,
+      keyVerse: keyVerse ?? scripture,
+      body: body,
+      questions: questions,
+      prayer: prayer,
+      action: action,
+      category: category,
+      minutes: minutes,
+    );
+  }
+
   final String id;
   final int day;
   final String title;

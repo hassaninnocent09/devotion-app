@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'app_colors.dart';
@@ -18,7 +19,7 @@ class AppTheme {
   );
 
   static ThemeData get light {
-    const swipeBack = CupertinoPageTransitionsBuilder();
+    final swipeBack = CupertinoPageTransitionsBuilder();
     return ThemeData(
       useMaterial3: true,
       fontFamily: AppText.sans,
@@ -36,7 +37,7 @@ class AppTheme {
       splashFactory: InkRipple.splashFactory,
       splashColor: const Color(0x14355539),
       highlightColor: const Color(0x0F355539),
-      pageTransitionsTheme: const PageTransitionsTheme(builders: {
+      pageTransitionsTheme: PageTransitionsTheme(builders: {
         TargetPlatform.android: swipeBack,
         TargetPlatform.iOS: swipeBack,
         TargetPlatform.macOS: swipeBack,
